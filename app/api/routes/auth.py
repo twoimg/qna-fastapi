@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Response
 from app.schemas.auth import Token, UserCreate
 
 from datetime import timedelta
@@ -11,12 +11,13 @@ from app import crud
 from app.core.security import create_access_token
 
 from app.core.config import settings
+from app.api.deps import SessionDep
 
 router = APIRouter()
 
 @router.post("/login")
 async def login(
-    db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    response: Response, db: SessionDep, form_data: OAuth2PasswordRequestForm = Depends()
 ):
     user = crud.authenticate_user(
         db, username=form_data.username, password=form_data.password
@@ -28,6 +29,14 @@ async def login(
 
     token_expiration = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token, exp = create_access_token(user.id, token_expiration)
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=True,
+        max_age=exp,
+    )
 
     return {
         "access_token": access_token,  # Must be "access_token", not "token"

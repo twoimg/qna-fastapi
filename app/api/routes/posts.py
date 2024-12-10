@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.schemas.questions import QuestionCreate, QuestionsResponse, AnswerCreate
 
@@ -20,15 +20,20 @@ async def post_query(question: QuestionCreate, db: Session = Depends(get_db)):
     
     return {"message": "query posted"}
 
-@router.get("/posts/{user_id}/", response_model=QuestionsResponse)
-async def get_user_posts(user_id: int, db: Session = Depends(get_db)):
-    questions = crud.get_questions_by_user_id(db, user_id)
+@router.get("/posts/{username}", response_model=QuestionsResponse)
+async def get_user_posts(
+    username: str, page: int = Query(1, ge=1), db: Session = Depends(get_db)
+):
+    questions = crud.get_questions_by_username(db, username)
     return {"questions": questions}
 
 @router.get("/posts/{question_id}")
 async def get_specific_question(question_id: int, db: Session = Depends(get_db)):
     question = crud.get_question_by_id(db, question_id)
-    return {"question": question}
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    return question
 
 @router.post("/posts/{question_id}/answers")
 async def answer_question(
@@ -42,9 +47,17 @@ async def answer_question(
     return {"message": "posted question answer"}
 
 @router.put("/answers/{answer_id}")
-async def update_answer(answer_id: int):
+async def update_answer(answer_id: int, db: SessionDep):
+    answer = crud.get_answer_by_id(db, answer_id)
+    if not answer:
+        raise HTTPException(status_code=404, detail="Answer not found")
+    
     return {"message": "update question answer"}
 
 @router.delete("/answers/{answer_id}")
-async def remove_answer(answer_id: int):
+async def remove_answer(answer_id: int, db: SessionDep):
+    answer = crud.get_answer_by_id(db, answer_id)
+    if not answer:
+        raise HTTPException(status_code=404, detail="Answer not found")
+    
     return {"message": "removed answer"}

@@ -142,22 +142,44 @@ def create_question(db: Session, question: QuestionCreate) -> Question:
 
     return db_question
 
-def get_questions_by_user_id(db: Session, user_id: int) -> list[Question]:
+def get_questions_by_username(
+        db: Session, username: str, page: int = 1, page_size: int = 10
+) -> tuple[list[Question], int] | None:
     """
-    Get questions by user id
+    Get questions by username
 
     Parameters:
         db (Session): The database session
-        user_id (int): The id of the user
+        username (str): The username of the user
+        page (int): The page number
+        page_size (int): The number of questions per page
 
     Returns:
-        list[Question]: The questions with the given user id
+        tuple[list[Question], int]: A tuple containing a list of questions and the total number of questions
     """
-    questions = db.query(Question) \
-        .options(joinedload(Question.answers)) \
-        .filter(Question.user_id == user_id) \
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    
+    offset = (page - 1) * page_size
+
+    total_questions = db.query(Question)\
+        .filter(User.username == username)\
+        .count()
+    
+    questions = db.query(Question)\
+        .join(User)\
+        .options(
+            joinedload(Question.answers),
+            joinedload(Question.user)
+        )\
+        .filter(User.username == username)\
+        .order_by(Question.created_at.desc())\
+        .offset(offset)\
+        .limit(page_size)\
         .all()
-    return questions
+    
+    return questions, total_questions
 
 def get_question_by_id(db: Session, question_id: int) -> Question | None:
     """
