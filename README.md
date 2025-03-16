@@ -2,6 +2,9 @@
 
 A FastAPI-based REST API for an anonymous Q&A platform where users can ask and answer questions anonymously.
 
+![image](https://github.com/user-attachments/assets/0c58050a-5447-480f-9917-d99ab1d6b0d1)
+
+
 ## Features
 
 - User authentication with JWT tokens
