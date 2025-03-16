@@ -192,7 +192,14 @@ def get_question_by_id(db: Session, question_id: int) -> Question | None:
     Returns:
         Question | None: The question with the given id or None if not found
     """
-    question = db.query(Question).filter(Question.id == question_id).first()
+    question = db.query(Question)\
+        .join(User)\
+        .options(
+            joinedload(Question.answers),
+            joinedload(Question.user)
+        )\
+        .filter(Question.id == question_id)\
+        .first()
     return question
 
 def create_answer(db: Session, question_id: int, user_id: int, answer: AnswerCreate) -> Answer:
@@ -218,3 +225,59 @@ def create_answer(db: Session, question_id: int, user_id: int, answer: AnswerCre
     db.refresh(db_answer)
 
     return db_answer
+
+def get_answer_by_id(db: Session, answer_id: int) -> Answer | None:
+    """
+    Get an answer by id
+
+    Parameters:
+        db (Session): The database session
+        answer_id (int): The id of the answer
+
+    Returns:
+        Answer | None: The answer with the given id or None if not found
+    """
+    answer = db.query(Answer).filter(Answer.id == answer_id).first()
+    return answer
+
+def update_answer_by_id(db: Session, answer_id: int, answer: str) -> Answer | None:
+    """
+    Update an answer by id
+
+    Parameters:
+        db (Session): The database session
+        answer_id (int): The id of the answer
+        answer (str): The new content of the answer
+
+    Returns:
+        Answer | None: The updated answer or None if not found
+    """
+    db_answer = db.query(Answer).filter(Answer.id == answer_id).first()
+    if not db_answer:
+        return None
+    
+    db_answer.content = answer
+    db.commit()
+    db.refresh(db_answer)
+
+    return db_answer
+
+def remove_answer_by_id(db: Session, answer_id: int) -> Answer | None:
+    """
+    Remove an answer by id
+
+    Parameters:
+        db (Session): The database session
+        answer_id (int): The id of the answer
+
+    Returns:
+        Answer | None: The removed answer or None if not found
+    """
+    answer = db.query(Answer).filter(Answer.id == answer_id).first()
+    if not answer:
+        return None
+    
+    db.delete(answer)
+    db.commit()
+
+    return answer
